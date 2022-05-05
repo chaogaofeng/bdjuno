@@ -15,8 +15,16 @@ all: lint build test-unit
 
 LD_FLAGS = -X github.com/forbole/juno/v3/cmd.Version=$(VERSION) \
 	-X github.com/forbole/juno/v3/cmd.Commit=$(COMMIT)
+
+ifeq ($(LINK_STATICALLY),true)
+	LD_FLAGS += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
+endif
+
 BUILD_FLAGS :=  -ldflags '$(LD_FLAGS)'
 
+ifneq (,$(BUILD_TAGS))
+  BUILD_FLAGS += -tags '$(BUILD_TAGS)'
+endif
 
 ###############################################################################
 ###                                  Build                                  ###
@@ -28,7 +36,7 @@ ifeq ($(OS),Windows_NT)
 	@go build -mod=readonly $(BUILD_FLAGS) -o build/bdjuno.exe ./cmd/bdjuno
 else
 	@echo "building bdjuno binary..."
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bdjuno ./cmd/bdjuno
+	@go build -mod=readonly $(BUILD_FLAGS) -tags muslc -o build/bdjuno ./cmd/bdjuno
 endif
 .PHONY: build
 
@@ -40,6 +48,12 @@ install: go.sum
 	@echo "installing bdjuno binary..."
 	@go install -mod=readonly $(BUILD_FLAGS) ./cmd/bdjuno
 .PHONY: install
+
+###############################################################################
+###                                 Docker                                 ###
+###############################################################################
+docker:
+	docker build -t glodnet/bdjuno .
 
 ###############################################################################
 ###                           Tests & Simulation                            ###
